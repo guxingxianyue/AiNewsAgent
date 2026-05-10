@@ -7,8 +7,8 @@ AiNewsAgent 是一个本地运行的每日 AI 前沿情报 agent。它会读取�
 ```bash
 python -m pip install -e ".[dev]"
 python -m playwright install chromium
-cp config.example.yaml config.yaml
-cp .env.example .env
+cp examples/config.example.yaml config.yaml
+cp examples/.env.example .env
 ```
 
 也可以直接运行初始化向导：
@@ -114,6 +114,7 @@ reading_level: technical
 ## 项目结构
 
 ```text
+examples/         # 示例配置文件
 ainewsagent/
   application/      # 应用编排流程，例如 run-once pipeline
   domain/           # 核心领域模型，例如 Item、Source
