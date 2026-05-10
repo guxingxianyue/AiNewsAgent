@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">运行历史</p>
+      <h1>采集任务</h1>
+    </div>
+  </div>
+
+  <div class="runs">
+    {% for run in runs %}
+      <div class="run">
+        <strong>#{{ run.id }} {{ run.status }}</strong>
+        <span>{{ run.started_at }} -> {{ run.finished_at }}</span>
+        <code>{{ run.report_path }}</code>
+        {% if run.failures %}
+          {% for failure in run.failures %}
+            <p>{{ failure }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="muted">暂无运行记录。</p>
+    {% endfor %}
+  </div>
+{% endblock %}

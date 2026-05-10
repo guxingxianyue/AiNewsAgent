@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AiNewsAgent</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">AiNewsAgent</a>
+      <nav>
+        <a href="/">简报</a>
+        <a href="/items">候选内容</a>
+        <a href="/runs">运行历史</a>
+      </nav>
+      <form method="post" action="/api/run">
+        <button type="submit">立即更新</button>
+      </form>
+    </header>
+    <main class="layout">
+      <aside class="sidebar">
+        <h2>历史简报</h2>
+        {% if briefings %}
+          {% for item in briefings %}
+            <a class="date-link" href="/date/{{ item.date }}">{{ item.date }}</a>
+          {% endfor %}
+        {% else %}
+          <p class="muted">暂无历史。</p>
+        {% endif %}
+      </aside>
+      <section class="content">
+        {% if settings and settings.interests %}
+          <div class="preference-strip">
+            <span>关注方向</span>
+            {% for interest in settings.interests %}
+              <strong>{{ interest }}</strong>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if trends %}
+          <div class="trend-strip">
+            <span>近 7 天趋势</span>
+            {% for trend in trends %}
+              <a href="/items" title="{{ trend.days }} 天出现 {{ trend.count }} 次">{{ trend.topic }} · {{ trend.count }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,75 @@
+from __future__ import annotations
+
+from datetime import datetime
+
+from ainewsagent.infrastructure.config import Settings
+from ainewsagent.infrastructure.database import AgentDatabase
+from ainewsagent.infrastructure.state import SeenState
+from ainewsagent.services.llm import LLMClient
+from ainewsagent.services.ranker import dedupe_items, rank_items
+from ainewsagent.services.report import write_report
+from ainewsagent.sources.arxiv import fetch_recent_papers
+from ainewsagent.sources.x_reader import XReadError, read_x_sources
+from ainewsagent.domain.models import Item
+
+
+def collect_candidates(settings: Settings, *, include_seen: bool = False, max_items: int | None = None) -> tuple[list[Item], list[str]]:
+    failures: list[str] = []
+    items: list[Item] = []
+
+    try:
+        items.extend(
+            read_x_sources(
+                settings.x_profile_dir,
+                list_url=settings.x_list_url,
+                accounts=settings.x_accounts,
+                max_posts=settings.x_max_posts,
+                browser_channel=settings.x_browser_channel,
+            )
+        )
+    except XReadError as exc:
+        failures.append(str(exc))
+
+    try:
+        items.extend(fetch_recent_papers(settings.arxiv_categories, settings.arxiv_max_results))
+    except Exception as exc:
+        failures.append(f"arXiv fetch failed: {exc}")
+
+    state = SeenState.load(settings.data_dir)
+    unique_items = dedupe_items(items)
+    if not include_seen:
+        unique_items = [item for item in unique_items if not state.is_seen(item)]
+    selected = rank_items(unique_items, max_items or settings.max_items)
+    return selected, failures
+
+
+def run_once(settings: Settings, llm: LLMClient, now: datetime | None = None) -> tuple[str, list[str]]:
+    started_at = datetime.now(settings.zone)
+    now = now or started_at
+    candidate_limit = max(settings.max_items * 3, settings.max_items)
+    candidates, failures = collect_candidates(settings, max_items=candidate_limit)
+    scored_items = llm.score_items(
+        candidates,
+        settings.max_items,
+        interests=settings.interests,
+        avoid_topics=settings.avoid_topics,
+        reading_level=settings.reading_level,
+    )
+    selected = [scored.item for scored in scored_items]
+    content = llm.create_briefing_from_scored(scored_items, failures)
+    path = write_report(content, settings.output_dir, now)
+    finished_at = datetime.now(settings.zone)
+    AgentDatabase(settings.database_path).save_run(
+        started_at=started_at,
+        finished_at=finished_at,
+        status="completed" if not failures else "completed_with_warnings",
+        report_path=str(path),
+        date=now.date().isoformat(),
+        content=content,
+        scored_items=scored_items,
+        failures=failures,
+    )
+    state = SeenState.load(settings.data_dir)
+    state.mark_many(selected)
+    state.save()
+    return str(path), failures

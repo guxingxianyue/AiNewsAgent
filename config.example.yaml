@@ -1,0 +1,30 @@
+x_list_url: ""
+x_accounts:
+  - openai
+  - arxiv_cs
+arxiv_categories:
+  - cs.AI
+  - cs.LG
+  - cs.CL
+  - cs.CV
+  - cs.RO
+  - cs.HC
+  - cs.SE
+max_items: 15
+timezone: Asia/Shanghai
+output_dir: reports
+data_dir: data
+x_profile_dir: .ainewsagent/x-profile
+x_browser_channel: ""
+x_max_posts: 40
+arxiv_max_results: 80
+interests:
+  - AI Agent
+  - LLM 推理
+  - 多模态
+  - AI 编程
+  - 开源模型
+avoid_topics:
+  - 纯营销
+  - 金融炒作
+reading_level: technical

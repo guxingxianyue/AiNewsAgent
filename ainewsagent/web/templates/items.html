@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">候选内容</p>
+      <h1>最近采集</h1>
+    </div>
+  </div>
+
+  <form class="filters" method="get" action="/items">
+    <input type="search" name="q" placeholder="搜索标题、正文、理由、主题" value="{{ filters.q if filters else '' }}">
+    <select name="source">
+      <option value="">全部来源</option>
+      <option value="x" {% if filters and filters.source == "x" %}selected{% endif %}>X</option>
+      <option value="arxiv" {% if filters and filters.source == "arxiv" %}selected{% endif %}>arXiv</option>
+    </select>
+    <select name="topic">
+      <option value="">全部主题</option>
+      {% for topic in filter_options.topics %}
+        <option value="{{ topic }}" {% if filters and filters.topic == topic %}selected{% endif %}>{{ topic }}</option>
+      {% endfor %}
+    </select>
+    <select name="importance">
+      <option value="">全部重要性</option>
+      {% for importance in filter_options.importances %}
+        <option value="{{ importance }}" {% if filters and filters.importance == importance %}selected{% endif %}>{{ importance }}</option>
+      {% endfor %}
+    </select>
+    <select name="audience">
+      <option value="">全部读者</option>
+      {% for audience in filter_options.audiences %}
+        <option value="{{ audience }}" {% if filters and filters.audience == audience %}selected{% endif %}>{{ audience }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">筛选</button>
+    <a class="clear-link" href="/items">清空</a>
+  </form>
+
+  <div class="item-list">
+    {% for record in items %}
+      <a class="item" href="{{ record.item.url }}" target="_blank" rel="noreferrer">
+        <span class="source">{{ record.item.source.value }} · {{ record.topic }}</span>
+        <strong>{{ record.item.title }}</strong>
+        <div class="badges">
+          <span>{{ record.importance }}</span>
+          <span>{{ record.audience }}</span>
+          {% for tag in record.tags %}
+            <span>{{ tag }}</span>
+          {% endfor %}
+        </div>
+        <small>
+          总分 {{ "%.1f"|format(record.total_score) }}
+          · 规则 {{ "%.1f"|format(record.rule_score) }}
+          · 模型 {{ "%.1f"|format(record.llm_score) }}
+          · {{ record.item.published_at.isoformat() }}
+        </small>
+        <p>{{ record.reason }}</p>
+        <p>{{ record.item.text[:240] }}</p>
+      </a>
+    {% else %}
+      <p class="muted">暂无候选内容。</p>
+    {% endfor %}
+  </div>
+{% endblock %}
