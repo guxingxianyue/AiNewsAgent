@@ -43,7 +43,7 @@ def run_once_command(config: Path = typer.Option(Path("config.yaml"), "--config"
         llm = LLMClient.from_env()
     except LLMConfigError as exc:
         raise typer.BadParameter(str(exc)) from exc
-    path, failures = run_pipeline(settings, llm)
+    path, failures = run_pipeline(settings, llm, progress=typer.echo)
     typer.echo(f"Report written: {path}")
     for failure in failures:
         typer.echo(f"Warning: {failure}")

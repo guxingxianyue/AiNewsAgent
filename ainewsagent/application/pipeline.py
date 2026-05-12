@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 
 from ainewsagent.infrastructure.config import Settings
@@ -29,11 +30,22 @@ def collect_candidates(settings: Settings, *, include_seen: bool = False, max_it
     return selected, failures
 
 
-def run_once(settings: Settings, llm: LLMClient, now: datetime | None = None) -> tuple[str, list[str]]:
+def run_once(
+    settings: Settings,
+    llm: LLMClient,
+    now: datetime | None = None,
+    progress: Callable[[str], None] | None = None,
+) -> tuple[str, list[str]]:
+    def tell(message: str) -> None:
+        if progress:
+            progress(message)
+
     started_at = datetime.now(settings.zone)
     now = now or started_at
     candidate_limit = max(settings.max_items * 3, settings.max_items)
+    tell("Collecting recent arXiv papers...")
     candidates, failures = collect_candidates(settings, max_items=candidate_limit)
+    tell(f"Collected {len(candidates)} candidate papers. Scoring with Mimo...")
     scored_items = llm.score_items(
         candidates,
         settings.max_items,
@@ -42,7 +54,9 @@ def run_once(settings: Settings, llm: LLMClient, now: datetime | None = None) ->
         reading_level=settings.reading_level,
     )
     selected = [scored.item for scored in scored_items]
+    tell(f"Selected {len(scored_items)} papers. Generating briefing...")
     content = llm.create_briefing_from_scored(scored_items, failures)
+    tell("Writing report and saving run history...")
     path = write_report(content, settings.output_dir, now)
     finished_at = datetime.now(settings.zone)
     AgentDatabase(settings.database_path).save_run(
@@ -58,4 +72,5 @@ def run_once(settings: Settings, llm: LLMClient, now: datetime | None = None) ->
     state = SeenState.load(settings.data_dir)
     state.mark_many(selected)
     state.save()
+    tell(f"Done. Report written: {path}")
     return str(path), failures
