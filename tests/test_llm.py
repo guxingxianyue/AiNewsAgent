@@ -5,19 +5,19 @@ from ainewsagent.services.llm import build_prompt, build_scoring_prompt
 def test_build_prompt_contains_required_sections():
     item = Item(
         id="1",
-        source=Source.X,
-        title="New AI model",
-        url="https://x.com/a/status/1",
-        text="A notable model release.",
+        source=Source.ARXIV,
+        title="New AI paper",
+        url="https://arxiv.org/abs/1",
+        text="A notable model paper.",
         published_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
-        authors=["@a"],
+        authors=["Ada Lovelace"],
     )
 
-    prompt = build_prompt([item], ["X warning"])
+    prompt = build_prompt([item], ["arXiv warning"])
 
     assert "今日重点" in prompt
-    assert "X warning" in prompt
-    assert "https://x.com/a/status/1" in prompt
+    assert "arXiv warning" in prompt
+    assert "https://arxiv.org/abs/1" in prompt
 
 
 def test_build_scoring_prompt_contains_preferences():

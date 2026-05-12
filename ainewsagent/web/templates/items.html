@@ -12,7 +12,6 @@
     <input type="search" name="q" placeholder="搜索标题、正文、理由、主题" value="{{ filters.q if filters else '' }}">
     <select name="source">
       <option value="">全部来源</option>
-      <option value="x" {% if filters and filters.source == "x" %}selected{% endif %}>X</option>
       <option value="arxiv" {% if filters and filters.source == "arxiv" %}selected{% endif %}>arXiv</option>
     </select>
     <select name="topic">

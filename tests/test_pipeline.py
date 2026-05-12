@@ -29,7 +29,7 @@ class FakeLLM:
         return "# fake briefing\n\n- done"
 
 
-def test_run_once_writes_report_with_arxiv_when_x_fails(monkeypatch, tmp_path):
+def test_run_once_writes_report_with_arxiv(monkeypatch, tmp_path):
     item = Item(
         id="paper-1",
         source=Source.ARXIV,
@@ -40,24 +40,16 @@ def test_run_once_writes_report_with_arxiv_when_x_fails(monkeypatch, tmp_path):
         categories=["cs.AI"],
     )
 
-    def fake_x(*args, **kwargs):
-        from ainewsagent.sources.x_reader import XReadError
-
-        raise XReadError("X login is required")
-
-    monkeypatch.setattr("ainewsagent.application.pipeline.read_x_sources", fake_x)
     monkeypatch.setattr("ainewsagent.application.pipeline.fetch_recent_papers", lambda *args, **kwargs: [item])
 
     settings = Settings(
-        x_accounts=["openai"],
         output_dir=tmp_path / "reports",
         data_dir=tmp_path / "data",
-        x_profile_dir=tmp_path / "profile",
     )
 
-    path, failures = run_once(settings, FakeLLM(expected_failures=["X login is required"]))
+    path, failures = run_once(settings, FakeLLM(expected_failures=[]))
 
-    assert failures == ["X login is required"]
+    assert failures == []
     assert Path(path).read_text(encoding="utf-8").startswith("# fake briefing")
     assert (tmp_path / "data" / "seen.json").exists()
 
@@ -72,7 +64,6 @@ def test_collect_candidates_can_include_seen(monkeypatch, tmp_path):
         published_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
         categories=["cs.AI"],
     )
-    monkeypatch.setattr("ainewsagent.application.pipeline.read_x_sources", lambda *args, **kwargs: [])
     monkeypatch.setattr("ainewsagent.application.pipeline.fetch_recent_papers", lambda *args, **kwargs: [item])
     settings = Settings(output_dir=tmp_path / "reports", data_dir=tmp_path / "data")
 

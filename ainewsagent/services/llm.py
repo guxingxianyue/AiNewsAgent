@@ -7,7 +7,7 @@ from json import JSONDecodeError
 
 import httpx
 
-from ainewsagent.domain.models import Item, ScoredItem, Source
+from ainewsagent.domain.models import Item, ScoredItem
 from ainewsagent.services.ranker import score_item
 
 
@@ -177,12 +177,11 @@ def build_scoring_prompt(
         "\n候选材料：",
     ]
     for index, item in enumerate(items, start=1):
-        source = "X" if item.source == Source.X else "arXiv"
         authors = ", ".join(item.authors[:4])
         categories = ", ".join(item.categories[:5])
         lines.extend(
             [
-                f"\n[{index}] 来源：{source}",
+                f"\n[{index}] 来源：arXiv",
                 f"标题：{item.title}",
                 f"作者/账号：{authors or '未知'}",
                 f"分类：{categories or '无'}",
@@ -197,19 +196,18 @@ def build_scoring_prompt(
 def build_prompt(items: list[Item], failures: list[str]) -> str:
     lines = [
         "请根据以下候选材料生成中文 Markdown 晨报。",
-        "固定结构：今日重点、X 热点、arXiv 论文精选、交叉趋势/观察、原始链接列表。",
+        "固定结构：今日重点、arXiv 论文精选、交叉趋势/观察、原始链接列表。",
         "要求：精选 10-15 条；每条说明一句为什么重要；不要编造候选材料外的信息。",
     ]
     if failures:
         lines.append("采集失败信息：" + "；".join(failures))
     lines.append("\n候选材料：")
     for index, item in enumerate(items, start=1):
-        source = "X" if item.source == Source.X else "arXiv"
         authors = ", ".join(item.authors[:4])
         categories = ", ".join(item.categories[:5])
         lines.extend(
             [
-                f"\n[{index}] 来源：{source}",
+                f"\n[{index}] 来源：arXiv",
                 f"标题：{item.title}",
                 f"作者/账号：{authors or '未知'}",
                 f"分类：{categories or '无'}",
@@ -224,7 +222,7 @@ def build_prompt(items: list[Item], failures: list[str]) -> str:
 def build_scored_prompt(scored_items: list[ScoredItem], failures: list[str]) -> str:
     lines = [
         "请根据以下已经筛选和评分的材料生成中文 Markdown 晨报。",
-        "固定结构：今日重点、X 热点、arXiv 论文精选、交叉趋势/观察、原始链接列表。",
+        "固定结构：今日重点、arXiv 论文精选、交叉趋势/观察、原始链接列表。",
         "要求：精选 10-15 条；每条说明为什么重要；优先使用评分理由；不要编造候选材料外的信息。",
     ]
     if failures:
@@ -232,12 +230,11 @@ def build_scored_prompt(scored_items: list[ScoredItem], failures: list[str]) -> 
     lines.append("\n候选材料：")
     for index, scored in enumerate(scored_items, start=1):
         item = scored.item
-        source = "X" if item.source == Source.X else "arXiv"
         authors = ", ".join(item.authors[:4])
         categories = ", ".join(item.categories[:5])
         lines.extend(
             [
-                f"\n[{index}] 来源：{source}",
+                f"\n[{index}] 来源：arXiv",
                 f"标题：{item.title}",
                 f"作者/账号：{authors or '未知'}",
                 f"分类：{categories or '无'}",
@@ -288,7 +285,7 @@ def _bounded_float(value, *, minimum: float, maximum: float) -> float:
 def _fallback_topic(item: Item) -> str:
     if item.categories:
         return item.categories[0]
-    return "AI 动态" if item.source == Source.X else "论文"
+    return "论文"
 
 
 def _fallback_audience(reading_level: str) -> str:

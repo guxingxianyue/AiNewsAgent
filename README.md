@@ -1,12 +1,11 @@
 # AiNewsAgent
 
-AiNewsAgent 是一个本地运行的每日 AI 前沿情报 agent。它会读取你配置的 X/Twitter 信息源和 arXiv 上最新的 AI/CS 论文，完成去重、排序和筛选后，调用兼容 OpenAI 接口的 Mimo 大模型生成中文简报，并写入 `reports/YYYY-MM-DD.md`。
+AiNewsAgent 是一个本地运行的每日 AI 前沿情报 agent。它会读取 arXiv 上最新的 AI/CS 论文，完成去重、排序和筛选后，调用兼容 OpenAI 接口的 Mimo 大模型生成中文简报，并写入 `reports/YYYY-MM-DD.md`。
 
 ## 安装
 
 ```bash
 python -m pip install -e ".[dev]"
-python -m playwright install chromium
 cp examples/config.example.yaml config.yaml
 cp examples/.env.example .env
 ```
@@ -17,7 +16,7 @@ cp examples/.env.example .env
 ainewsagent init
 ```
 
-它会创建或补全 `config.yaml`、`.env`，并准备 `reports/`、`data/`、`.ainewsagent/` 目录。
+它会创建或补全 `config.yaml`、`.env`，并准备 `reports/`、`data/` 目录。
 
 配置 Mimo API。你可以编辑 `.env`：
 
@@ -33,7 +32,6 @@ MIMO_MODEL=your-model-name
 
 ```bash
 ainewsagent init
-ainewsagent login-x
 ainewsagent doctor
 ainewsagent preview
 ainewsagent run-once
@@ -41,11 +39,9 @@ ainewsagent web
 ainewsagent install-schedule
 ```
 
-`login-x` 会打开一个持久化 Chromium 浏览器 profile，路径是 `.ainewsagent/x-profile`，用于复用你的 X 登录状态。
+`run-once` 会立即抓取 arXiv 内容，并生成当天的中文 Markdown 简报。
 
-`run-once` 会立即抓取 X 和 arXiv 内容，并生成当天的中文 Markdown 简报。
-
-`doctor` 会检查配置、Mimo 环境变量、arXiv API 连通性、X 浏览器环境和 X 登录 profile。
+`doctor` 会检查配置、Mimo 环境变量和 arXiv API 连通性。
 
 `preview` 会只抓取和排序候选内容，不调用 Mimo，也不会生成报告，适合调试每天会选中哪些内容。
 
@@ -53,27 +49,11 @@ ainewsagent install-schedule
 
 `install-schedule` 会创建一个 macOS LaunchAgent，使用当前项目目录作为工作目录，每天 Asia/Shanghai 时间 08:00 自动运行。
 
-如果 Playwright 自带的 Chromium 还没有安装，执行：
-
-```bash
-python -m playwright install chromium
-```
-
-如果你本机已经安装了 Google Chrome，也可以在 `config.yaml` 里设置：
-
-```yaml
-x_browser_channel: chrome
-```
-
 ## 配置
 
 编辑 `config.yaml`：
 
 ```yaml
-x_list_url: "https://x.com/i/lists/123"
-x_accounts:
-  - openai
-  - arxiv_cs
 arxiv_categories:
   - cs.AI
   - cs.LG
@@ -85,7 +65,8 @@ arxiv_categories:
 max_items: 15
 timezone: Asia/Shanghai
 output_dir: reports
-x_browser_channel: ""
+data_dir: data
+arxiv_max_results: 80
 interests:
   - AI Agent
   - LLM 推理
@@ -100,16 +81,15 @@ reading_level: technical
 
 字段说明：
 
-- `x_list_url`：优先读取的 X List URL。
-- `x_accounts`：没有配置 List 时读取这些 X 账号主页。
 - `arxiv_categories`：要抓取的 arXiv 分类。
 - `max_items`：每天最终精选条数，默认 15。
 - `timezone`：定时和报告日期使用的时区。
 - `output_dir`：简报输出目录。
-- `x_browser_channel`：可选浏览器通道，例如 `chrome`。
+- `data_dir`：SQLite 数据库和已读状态文件目录。
+- `arxiv_max_results`：每次从 arXiv 拉取的最大候选数量。
 - `interests`：你最关心的 AI 方向，会影响模型评分和入选排序。
 - `avoid_topics`：你想降低权重的主题。
-- `reading_level`：阅读深度，推荐 `technical`，也可以用 `product` 或 `executive`。
+- `reading_level`：阅读深度，推荐 `technical`，也可以使用 `product` 或 `executive`。
 
 ## 项目结构
 
@@ -119,12 +99,12 @@ ainewsagent/
   application/      # 应用编排流程，例如 run-once pipeline
   domain/           # 核心领域模型，例如 Item、Source
   infrastructure/   # 配置、状态文件、系统定时任务
-  interfaces/       # CLI 等外部入口
+  interfaces/       # CLI 和 Web 入口
   services/         # LLM、排序去重、报告生成等业务服务
-  sources/          # 外部信息源读取，例如 X 和 arXiv
+  sources/          # 外部信息源读取，例如 arXiv
 ```
 
-入口仍然是：
+入口：
 
 ```bash
 ainewsagent run-once
@@ -218,18 +198,17 @@ SQLite 会保存：
 简报包含：
 
 - 今日重点
-- X 热点
 - arXiv 论文精选
 - 交叉趋势/观察
 - 原始链接列表
 
-已读链接和论文 ID 会保存在 `data/seen.json`，用于减少重复内容。
+已读论文 ID 会保存在 `data/seen.json`，用于减少重复内容。
 
 ## 筛选流程
 
-AiNewsAgent 现在使用两阶段筛选：
+AiNewsAgent 使用两阶段筛选：
 
-1. 本地规则先按来源、新鲜度、关键词、分类和互动信号打分，筛出较大的候选池。
+1. 本地规则先按来源、新鲜度、关键词和分类打分，筛出较大的候选池。
 2. Mimo 再结合 `interests`、`avoid_topics` 和 `reading_level` 做重要性评分、主题归类、读者类型、标签和入选理由生成。
 3. 最终简报使用带评分和理由的候选内容生成，Web 页面也会展示这些解释信息。
 

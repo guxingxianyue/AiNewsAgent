@@ -17,8 +17,6 @@ def render_fallback_briefing(items: list[Item], failures: list[str]) -> str:
     for item in items[:5]:
         lines.append(f"- [{item.title}]({item.url})")
 
-    lines.extend(["", "## X 热点"])
-    _append_source(lines, items, Source.X)
     lines.extend(["", "## arXiv 论文精选"])
     _append_source(lines, items, Source.ARXIV)
     lines.extend(["", "## 交叉趋势/观察", "- 未调用大模型，当前为规则生成简报。"])

@@ -9,26 +9,12 @@ from ainewsagent.services.llm import LLMClient
 from ainewsagent.services.ranker import dedupe_items, rank_items
 from ainewsagent.services.report import write_report
 from ainewsagent.sources.arxiv import fetch_recent_papers
-from ainewsagent.sources.x_reader import XReadError, read_x_sources
 from ainewsagent.domain.models import Item
 
 
 def collect_candidates(settings: Settings, *, include_seen: bool = False, max_items: int | None = None) -> tuple[list[Item], list[str]]:
     failures: list[str] = []
     items: list[Item] = []
-
-    try:
-        items.extend(
-            read_x_sources(
-                settings.x_profile_dir,
-                list_url=settings.x_list_url,
-                accounts=settings.x_accounts,
-                max_posts=settings.x_max_posts,
-                browser_channel=settings.x_browser_channel,
-            )
-        )
-    except XReadError as exc:
-        failures.append(str(exc))
 
     try:
         items.extend(fetch_recent_papers(settings.arxiv_categories, settings.arxiv_max_results))

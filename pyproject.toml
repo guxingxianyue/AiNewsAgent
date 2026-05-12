@@ -1,7 +1,7 @@
 [project]
 name = "AiNewsAgent"
 version = "0.1.0"
-description = "Daily AI frontier briefing agent for X/Twitter and arXiv."
+description = "Daily AI frontier briefing agent for arXiv."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,7 +9,6 @@ dependencies = [
   "httpx>=0.27.0",
   "jinja2>=3.1.0",
   "markdown-it-py>=4.0.0",
-  "playwright>=1.44.0",
   "pyyaml>=6.0.1",
   "typer>=0.12.0",
   "uvicorn>=0.30.0",

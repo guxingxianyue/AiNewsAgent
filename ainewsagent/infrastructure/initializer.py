@@ -9,16 +9,11 @@ from ainewsagent.infrastructure.config import DEFAULT_CATEGORIES, DEFAULT_INTERE
 
 
 DEFAULT_CONFIG = {
-    "x_list_url": "",
-    "x_accounts": ["openai", "arxiv_cs"],
     "arxiv_categories": DEFAULT_CATEGORIES,
     "max_items": 15,
     "timezone": "Asia/Shanghai",
     "output_dir": "reports",
     "data_dir": "data",
-    "x_profile_dir": ".ainewsagent/x-profile",
-    "x_browser_channel": "",
-    "x_max_posts": 40,
     "arxiv_max_results": 80,
     "interests": DEFAULT_INTERESTS,
     "avoid_topics": ["纯营销", "金融炒作"],
@@ -44,7 +39,7 @@ class InitResult:
 def initialize_project(config_path: Path = Path("config.yaml"), env_path: Path = Path(".env")) -> InitResult:
     config_created, config_updated = _ensure_yaml_config(config_path)
     env_created, env_updated = _ensure_env(env_path)
-    directories = [Path("reports"), Path("data"), Path(".ainewsagent")]
+    directories = [Path("reports"), Path("data")]
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
     return InitResult(

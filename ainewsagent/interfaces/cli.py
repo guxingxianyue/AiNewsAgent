@@ -13,7 +13,6 @@ from ainewsagent.infrastructure.initializer import initialize_project
 from ainewsagent.infrastructure.scheduler import install_launch_agent
 from ainewsagent.services.llm import LLMClient, LLMConfigError
 from ainewsagent.services.ranker import score_item
-from ainewsagent.sources.x_reader import XReadError, login_x
 
 app = typer.Typer(help="AiNewsAgent daily AI frontier briefing agent.")
 
@@ -35,15 +34,6 @@ def init_command(
     for directory in result.directories:
         typer.echo(f"- directory ready: {directory}")
     typer.echo("下一步：编辑 .env 填入 Mimo API，再运行 `ainewsagent doctor`。")
-
-
-@app.command("login-x")
-def login_x_command(config: Path = typer.Option(Path("config.yaml"), "--config", "-c")) -> None:
-    settings = load_settings(config)
-    try:
-        login_x(settings.x_profile_dir, browser_channel=settings.x_browser_channel)
-    except XReadError as exc:
-        raise typer.BadParameter(str(exc)) from exc
 
 
 @app.command("run-once")
