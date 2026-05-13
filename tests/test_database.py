@@ -7,6 +7,7 @@ from ainewsagent.infrastructure.database import AgentDatabase
 
 def test_database_saves_and_reads_briefing(tmp_path):
     db = AgentDatabase(tmp_path / "ainewsagent.db")
+    today = datetime.now(timezone.utc).date().isoformat()
     item = Item(
         id="paper-1",
         source=Source.ARXIV,
@@ -22,8 +23,8 @@ def test_database_saves_and_reads_briefing(tmp_path):
         started_at=datetime.now(timezone.utc),
         finished_at=datetime.now(timezone.utc),
         status="completed",
-        report_path="reports/2026-05-06.md",
-        date="2026-05-06",
+        report_path=f"reports/{today}.md",
+        date=today,
         content="# briefing",
         scored_items=[ScoredItem(item=item, rule_score=10, llm_score=8, topic="智能体", reason="重要进展")],
         failures=[],
@@ -32,7 +33,7 @@ def test_database_saves_and_reads_briefing(tmp_path):
     briefing = db.latest_briefing()
 
     assert briefing is not None
-    assert briefing.date == "2026-05-06"
+    assert briefing.date == today
     record = db.items_for_briefing(briefing.id)[0]
     assert record.item.title == "Agent Paper"
     assert record.topic == "智能体"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import typer
@@ -10,6 +11,7 @@ from ainewsagent.application.pipeline import collect_candidates
 from ainewsagent.infrastructure.config import load_settings
 from ainewsagent.infrastructure.env import load_dotenv
 from ainewsagent.infrastructure.initializer import initialize_project
+from ainewsagent.infrastructure.database import AgentDatabase
 from ainewsagent.infrastructure.scheduler import install_launch_agent
 from ainewsagent.services.llm import LLMClient, LLMConfigError
 from ainewsagent.services.ranker import score_item
@@ -39,14 +41,26 @@ def init_command(
 @app.command("run-once")
 def run_once_command(config: Path = typer.Option(Path("config.yaml"), "--config", "-c")) -> None:
     settings = load_settings(config)
+    started_at = datetime.now(settings.zone)
     try:
         llm = LLMClient.from_env()
     except LLMConfigError as exc:
-        raise typer.BadParameter(str(exc)) from exc
-    path, failures = run_pipeline(settings, llm, progress=typer.echo)
-    typer.echo(f"Report written: {path}")
-    for failure in failures:
+        message = f"Mimo 配置错误：{exc}"
+        AgentDatabase(settings.database_path).save_error_run(
+            started_at=started_at,
+            finished_at=datetime.now(settings.zone),
+            status="failed",
+            failures=[message],
+        )
+        typer.echo(f"ERROR: {message}")
+        raise typer.Exit(code=2) from exc
+    result = run_pipeline(settings, llm, progress=typer.echo)
+    typer.echo(f"Report written: {result.report_path}")
+    typer.echo(f"Status: {result.status}")
+    for failure in result.failures:
         typer.echo(f"Warning: {failure}")
+    if result.status == "skipped_duplicate":
+        raise typer.Exit(code=3)
 
 
 @app.command("preview")

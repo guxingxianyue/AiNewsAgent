@@ -2,6 +2,8 @@
 
 AiNewsAgent 是一个本地运行的每日 AI 前沿情报 agent。它会读取 arXiv 上最新的 AI/CS 论文，完成去重、排序和筛选后，调用兼容 OpenAI 接口的 Mimo 大模型生成中文简报，并写入 `reports/YYYY-MM-DD.md`。
 
+项目长期方向见：[北极星规划](docs/NORTH_STAR.md)。
+
 ## 安装
 
 ```bash

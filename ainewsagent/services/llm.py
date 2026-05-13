@@ -48,8 +48,27 @@ class LLMClient:
         avoid_topics: list[str] | None = None,
         reading_level: str = "technical",
     ) -> list[ScoredItem]:
+        scored, _ = self.score_items_with_warnings(
+            items,
+            max_items,
+            interests=interests,
+            avoid_topics=avoid_topics,
+            reading_level=reading_level,
+        )
+        return scored
+
+    def score_items_with_warnings(
+        self,
+        items: list[Item],
+        max_items: int,
+        *,
+        interests: list[str] | None = None,
+        avoid_topics: list[str] | None = None,
+        reading_level: str = "technical",
+    ) -> tuple[list[ScoredItem], list[str]]:
         if not items:
-            return []
+            return [], []
+        warnings: list[str] = []
         payload = {
             "model": self.model,
             "temperature": 0.1,
@@ -76,7 +95,10 @@ class LLMClient:
         try:
             content = self._post_chat(payload)
             decisions = _parse_scoring_response(content)
-        except Exception:
+            if not decisions:
+                warnings.append("LLM scoring JSON 解析失败，已降级为规则评分。")
+        except Exception as exc:
+            warnings.append(f"LLM scoring 调用失败：{exc}")
             decisions = {}
         scored = []
         for index, item in enumerate(items, start=1):
@@ -100,7 +122,7 @@ class LLMClient:
                     tags=tags,
                 )
             )
-        return sorted(scored, key=lambda scored_item: scored_item.total_score, reverse=True)[:max_items]
+        return sorted(scored, key=lambda scored_item: scored_item.total_score, reverse=True)[:max_items], warnings
 
     def create_briefing(self, items: list[Item], failures: list[str]) -> str:
         payload = {

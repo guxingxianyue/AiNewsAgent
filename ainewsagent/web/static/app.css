@@ -238,6 +238,11 @@ h2 {
   border-color: #fecaca;
 }
 
+.status-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
 .warning {
   background: var(--warn-bg);
   border: 1px solid var(--warn-line);

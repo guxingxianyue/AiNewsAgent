@@ -135,7 +135,7 @@ def _run_agent(app: FastAPI) -> None:
         started_at = datetime.now(settings.zone)
         try:
             llm = LLMClient.from_env()
-            path, failures = run_once(settings, llm)
+            result = run_once(settings, llm)
         except LLMConfigError as exc:
             message = f"Mimo 配置错误：{exc}"
             AgentDatabase(settings.database_path).save_error_run(
@@ -159,7 +159,9 @@ def _run_agent(app: FastAPI) -> None:
             app.state.run_status = {"state": "failed", "message": message}
             return
         app.state.db = AgentDatabase(settings.database_path)
-        if failures:
-            app.state.run_status = {"state": "succeeded", "message": f"已生成 {path}，但有采集警告。"}
+        if result.status == "skipped_duplicate":
+            app.state.run_status = {"state": "warning", "message": f"已跳过重复运行：{result.failures[0]}"}
+        elif result.failures:
+            app.state.run_status = {"state": "warning", "message": f"已生成 {result.report_path}，但有采集警告。"}
         else:
-            app.state.run_status = {"state": "succeeded", "message": f"已生成 {path}。"}
+            app.state.run_status = {"state": "succeeded", "message": f"已生成 {result.report_path}。"}
